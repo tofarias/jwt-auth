@@ -394,13 +394,30 @@ class JWTGuard implements Guard
      */
     protected function validateSubject()
     {
-        // If the provider doesn't have the necessary method
-        // to get the underlying model name then allow.
-        if (! method_exists($this->provider, 'getModel')) {
-            return true;
+        $providerModel = $this->getProviderModel($this->provider);
+        return $this->jwt->checkSubjectModel($providerModel);
+    }
+    
+    /**
+     * Workaround for DoctrineUserProvider
+     * @return string
+     */
+    private function getProviderModel($provider) : string
+    {
+        $providerModel = null;
+
+        if( $this->provider instanceof DoctrineUserProvider){
+
+            $reflection = new \ReflectionClass($provider);
+            $property = $reflection->getProperty('entity');
+            $property->setAccessible(true);
+            $providerModel = $property->getValue($provider);
+
+        }else{
+            $providerModel = $provider->getModel();
         }
 
-        return $this->jwt->checkSubjectModel($this->provider->getModel());
+        return $providerModel;
     }
 
     /**
